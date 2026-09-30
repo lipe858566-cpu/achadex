@@ -49,3 +49,24 @@ export async function getStats() {
   ]);
   return { products: products || 0, clicks: clicks || 0 };
 }
+export async function uploadProductImage(file) {
+  if (!supabase) throw new Error("Supabase não configurado.");
+
+  const extension = file.name.split(".").pop();
+  const fileName = `${crypto.randomUUID()}.${extension}`;
+
+  const { error } = await supabase.storage
+    .from("product-images")
+    .upload(fileName, file, {
+      cacheControl: "3600",
+      upsert: false,
+    });
+
+  if (error) throw error;
+
+  const { data } = supabase.storage
+    .from("product-images")
+    .getPublicUrl(fileName);
+
+  return data.publicUrl;
+}

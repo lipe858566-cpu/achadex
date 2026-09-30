@@ -2,7 +2,7 @@ import React from "react";
 import { useEffect, useState } from "react";
 import { LogOut, Plus, Pencil, Trash2, ExternalLink, Package, MousePointerClick } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { deleteProduct, getAdminProducts, getStats, saveProduct } from "../lib/api";
+import { deleteProduct, getAdminProducts, getStats, saveProduct, uploadProductImage } from "../lib/api";
 
 const blank = { name: "", description: "", price: "", image_url: "", affiliate_url: "", category: "", published: true, is_featured: false };
 
@@ -14,6 +14,7 @@ export default function Dashboard() {
   const [editing, setEditing] = useState(false);
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   async function load() {
     const [p, s] = await Promise.all([getAdminProducts(), getStats()]);
@@ -78,7 +79,47 @@ export default function Dashboard() {
             <label>Nome do produto<input value={form.name} onChange={e => setForm({...form,name:e.target.value})} required /></label>
             <label>Preço<input type="number" step="0.01" value={form.price} onChange={e => setForm({...form,price:e.target.value})} required /></label>
             <label>Categoria<input value={form.category} onChange={e => setForm({...form,category:e.target.value})} placeholder="Ex.: Casa" /></label>
-            <label>Imagem (URL)<input value={form.image_url} onChange={e => setForm({...form,image_url:e.target.value})} placeholder="https://..." /></label>
+            <label>
+  Imagem do produto
+  <input
+    type="file"
+    accept="image/*"
+    disabled={uploadingImage}
+    onChange={async (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
+      try {
+        setUploadingImage(true);
+        setMessage("");
+
+        const url = await uploadProductImage(file);
+
+        setForm({ ...form, image_url: url });
+        setMessage("Imagem enviada com sucesso!");
+      } catch (error) {
+        setMessage(error.message);
+      } finally {
+        setUploadingImage(false);
+      }
+    }}
+  />
+
+  {uploadingImage && <small>Enviando imagem...</small>}
+
+  {form.image_url && (
+    <img
+      src={form.image_url}
+      alt="Prévia"
+      style={{
+        width: "120px",
+        height: "120px",
+        objectFit: "contain",
+        marginTop: "10px"
+      }}
+    />
+  )}
+</label>
             <label>Link da oferta / afiliado<input value={form.affiliate_url} onChange={e => setForm({...form,affiliate_url:e.target.value})} placeholder="https://..." required /></label>
             <label className="full">Descrição<textarea value={form.description} onChange={e => setForm({...form,description:e.target.value})} rows="3" /></label>
             <label className="check"><input type="checkbox" checked={form.published} onChange={e => setForm({...form,published:e.target.checked})}/> Publicado na vitrine</label>
